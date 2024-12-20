@@ -7,14 +7,6 @@ on:
         description: 'the commit sha to test'
         required: true
         default: 'e0bed2b0'
-      retries:
-        description: 'the number of retries'
-        required: true
-        default: 1
-      max_number:
-        description: 'The maximum number for test runs in test_management'
-        required: true
-        default: 10
   push:
     branches:
       - main
@@ -26,14 +18,11 @@ concurrency:
 
 jobs:
   build-cache:
-    runs-on: ubuntu-latest
-    outputs:
-      range: ${{ steps.set-matrix.outputs.range }}
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # Use commit_sha if provided (workflow_dispatch), otherwise use github.sha
           ref: ${{ github.event.inputs.commit_sha || github.sha }}
 
       - name: Install Go
@@ -106,36 +95,29 @@ jobs:
         working-directory: relay
         run: CGO_ENABLED=1 GOARCH=386 go build -o relay-386 .
 
-      - name: Set up matrix dynamically
-        id: set-matrix
-        run: |
-          MAX_NUMBER=${{ github.event.inputs.max_number }}
-          RANGE=$(seq 1 $MAX_NUMBER | jq -R -s 'split("\n")[:-1]')
-          echo "range=$RANGE" >> $GITHUB_OUTPUT
-
   test:
     needs: [build-cache]
     strategy:
       fail-fast: false
       matrix:
         arch: [ '386','amd64' ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.commit_sha || github.sha }}
-
       - name: Install Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.23.x"
           cache: false
 
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.commit_sha || github.sha }}
+
       - name: Get Go environment
         run: |
           echo "cache=$(go env GOCACHE)" >> $GITHUB_ENV
-          echo "modcache=$(go env.GOMODCACHE)" >> $GITHUB_ENV     
+          echo "modcache=$(go env GOMODCACHE)" >> $GITHUB_ENV     
 
       - name: Cache Go modules
         uses: actions/cache/restore@v4
@@ -170,19 +152,19 @@ jobs:
       matrix:
         arch: [ '386','amd64' ]
         store: [ 'sqlite', 'postgres']
-        runs: ${{ fromJSON(needs.build-cache.outputs.range) }}
+        runs: ['1','2','3','4','5','6','7','8','9','10']
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.commit_sha || github.sha }}
-
       - name: Install Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.23.x"
           cache: false
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.commit_sha || github.sha }}
 
       - name: Get Go environment
         run: |
