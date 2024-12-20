@@ -4,13 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       commit_sha:
-        description: 'The commit sha to test from netbirdio/netbird'
+        description: 'The commit SHA to test from netbirdio/netbird'
         required: true
         default: 'e0bed2b0'
-  push:
-    branches:
-      - main
-  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || github.actor_id }}
@@ -18,13 +14,14 @@ concurrency:
 
 jobs:
   build-cache:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code from upstream
         uses: actions/checkout@v4
         with:
           repository: netbirdio/netbird
-          ref: ${{ github.event.inputs.commit_sha || github.sha }}
+          ref: ${{ github.event.inputs.commit_sha }}
           fetch-depth: 0
 
       - name: Install Go
@@ -36,7 +33,7 @@ jobs:
       - name: Get Go environment
         run: |
           echo "cache=$(go env GOCACHE)" >> $GITHUB_ENV
-          echo "modcache=$(go env GOMODCACHE)" >> $GITHUB_ENV
+          echo "modcache=$(go env GOMODCACHE)" >> $GITHUB_ENV     
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -98,7 +95,8 @@ jobs:
         run: CGO_ENABLED=1 GOARCH=386 go build -o relay-386 .
 
   test:
-    needs: [build-cache]
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: [ build-cache ]
     strategy:
       fail-fast: false
       matrix:
@@ -115,13 +113,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: netbirdio/netbird
-          ref: ${{ github.event.inputs.commit_sha || github.sha }}
+          ref: ${{ github.event.inputs.commit_sha }}
           fetch-depth: 0
 
       - name: Get Go environment
         run: |
           echo "cache=$(go env GOCACHE)" >> $GITHUB_ENV
-          echo "modcache=$(go env GOMODCACHE)" >> $GITHUB_ENV
+          echo "modcache=$(go env GOMODCACHE)" >> $GITHUB_ENV     
 
       - name: Cache Go modules
         uses: actions/cache/restore@v4
@@ -150,6 +148,7 @@ jobs:
         run: CGO_ENABLED=1 GOARCH=${{ matrix.arch }} CI=true go test -exec 'sudo' -timeout 10m -p 1 $(go list ./... | grep -v /management)
 
   test_management:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     needs: [ build-cache ]
     strategy:
       fail-fast: false
@@ -169,13 +168,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: netbirdio/netbird
-          ref: ${{ github.event.inputs.commit_sha || github.sha }}
+          ref: ${{ github.event.inputs.commit_sha }}
           fetch-depth: 0
 
       - name: Get Go environment
         run: |
           echo "cache=$(go env GOCACHE)" >> $GITHUB_ENV
-          echo "modcache=$(go env GOMODCACHE)" >> $GITHUB_ENV
+          echo "modcache=$(go env GOMODCACHE)" >> $GITHUB_ENV     
 
       - name: Cache Go modules
         uses: actions/cache/restore@v4
