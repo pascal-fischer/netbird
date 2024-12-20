@@ -26,7 +26,7 @@ concurrency:
 
 jobs:
   build-cache:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     outputs:
       range: ${{ steps.set-matrix.outputs.range }}
     steps:
@@ -119,7 +119,7 @@ jobs:
       fail-fast: false
       matrix:
         arch: [ '386','amd64' ]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
